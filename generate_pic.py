@@ -1,5 +1,6 @@
 from google import genai
 from google.genai import types
+from sys import stdout
 import os
 
 api_key = os.environ['GOOGLE_AI_API_KEY']
@@ -13,5 +14,4 @@ response = client.models.generate_images(
     )
 )
 for generated_image in response.generated_images:
-  with open('picture.png', 'wb') as binary_file:
-    binary_file.write(generated_image.image.image_bytes)
+  stdout.buffer.write(generated_image.image.image_bytes)
