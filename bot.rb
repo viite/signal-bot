@@ -4,6 +4,7 @@ require 'base64'
 require 'securerandom'
 
 bot_account = ARGV[0]
+group_id = ARGV[1]
 
 puts "Using #{bot_account} as bot account"
 
@@ -26,14 +27,26 @@ stdout.each_line do |line|
 
   case message
   when /^\/pic (.*)/
-    pic_stdout, pic_stderr, pic_status = Open3.capture3("python3", "source/generate_pic.py", $1)
+    if group_info = data.dig("params", "envelope", "dataMessage", "groupInfo")
+      if group_info['groupId'] == group_id
+        $signal_stdin.puts JSON.generate(jsonrpc: '2.0', id: SecureRandom.uuid, method: "sendTyping", params: {groupId: group_id})
 
-    recipient = data.dig("params", "envelope", "source")
+        pic_stdout, pic_stderr, pic_status = Open3.capture3("python3", "source/generate_pic.py", $1)
 
-    if pic_status.success?
-      write_reply(recipient: [recipient], attachments: ["data:image/png;base64,#{Base64.strict_encode64 pic_stdout}"])
+        $signal_stdin.puts JSON.generate(jsonrpc: '2.0', id: SecureRandom.uuid, method: "sendTyping", params: {groupId: group_id, stop: true})
+
+        if pic_status.success?
+          base64 = Base64.strict_encode64 pic_stdout
+
+          write_reply(groupId: group_id, attachments: ["data:image/png;base64,#{base64}"])
+        else
+          write_reply(groupId: group_id, message: "Could not generate picture")
+        end
+      else
+        puts "GROUP ID DID NOT MATCH"
+      end
     else
-      write_reply(recipient: [recipient], message: "Could not generate picture")
+      puts "NOT POSTED TO GROUP"
     end
   end
 end
