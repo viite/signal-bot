@@ -10,8 +10,13 @@ puts "Using #{bot_account} as bot account"
 
 $signal_stdin, stdout, wait_thr = Open3.popen2("signal-cli -a #{bot_account} jsonRpc")
 
-def write_reply(params)
-  reply_json = JSON.generate(jsonrpc: '2.0', id: SecureRandom.uuid, method: "send", params: params)
+def write_reply(data, params)
+  timestamp = data.dig("params", "envelope", "timestamp")
+  message = data.dig("params", "envelope", "dataMessage", "message")
+  author = data.dig("params", "envelope", "source")
+  quote_params = {quoteTimestamp: timestamp, quoteMessage: message, quoteAuthor: author}
+  reply_json = JSON.generate(jsonrpc: '2.0', id: SecureRandom.uuid, method: "send", params: quote_params.merge(params))
+  puts reply_json
   $signal_stdin.puts reply_json
 end
 
@@ -38,9 +43,9 @@ stdout.each_line do |line|
         if pic_status.success?
           base64 = Base64.strict_encode64 pic_stdout
 
-          write_reply(groupId: group_id, attachments: ["data:image/png;base64,#{base64}"])
+          write_reply(data, groupId: group_id, attachments: ["data:image/png;base64,#{base64}"])
         else
-          write_reply(groupId: group_id, message: "Could not generate picture")
+          write_reply(data, groupId: group_id, message: "Could not generate picture")
         end
       else
         puts "GROUP ID DID NOT MATCH"
