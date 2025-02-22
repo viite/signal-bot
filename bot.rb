@@ -26,7 +26,7 @@ stdout.each_line do |line|
 
   case message
   when /^\/pic (.*)/
-    pic_stdout, pic_stderr, pic_status = Open3.capture3("python3 source/generate_pic.py")
+    pic_stdout, pic_stderr, pic_status = Open3.capture3("python3", "source/generate_pic.py", $1)
 
     recipient = data.dig("params", "envelope", "source")
 
