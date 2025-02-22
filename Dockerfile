@@ -4,7 +4,7 @@ USER root
 
 RUN <<EOD
   apt-get update
-  apt-get install -y --no-install-recommends python3-pip python3-venv
+  apt-get install -y --no-install-recommends python3-pip python3-venv ruby
   mkdir /app/
   chown signal-cli /app
 EOD
