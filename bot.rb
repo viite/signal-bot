@@ -84,7 +84,7 @@ def process(line)
 
         write_reply(data, groupId: group_id, attachments: ["data:image/png;base64,#{base64}"])
       else
-        write_reply(data, groupId: group_id, message: "Could not generate picture")
+        write_reply(data, groupId: group_id, message: "Could not generate picture\n#{pic_stderr}")
       end
     end
   when "/analyze"
