@@ -5,7 +5,19 @@ require 'json'
 require 'base64'
 require 'securerandom'
 
-bot_account, *group_ids = ARGV
+require 'bundler/setup'
+
+require 'json-schema'
+
+config = JSON.parse(File.read(ARGV.first))
+
+schema_path = File.expand_path("../config_schema.json", __FILE__)
+
+JSON::Validator.validate!(schema_path, config)
+
+bot_account = config['bot_account']
+group_ids = config['signal_groups']
+ENV['GOOGLE_AI_API_KEY'] = config['google_ai_api_key']
 
 puts "Using #{bot_account} as bot account"
 
