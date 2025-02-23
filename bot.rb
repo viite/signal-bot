@@ -94,6 +94,10 @@ def process(line)
         write_reply(data, groupId: group_id, message: analyze_message(quote_text))
       end
     end
+  when '/ping'
+    group_detect(data) do |group_id|
+      write_reply(data, groupId: group_id, message: 'pong')
+    end
   end
 end
 
