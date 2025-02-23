@@ -104,6 +104,13 @@ def process(line)
       sleep seconds
       write_reply(data, groupId: group_id, message: "pong after #{seconds} seconds")
     end
+  when /^\/pause (\d+)/
+    group_detect(data) do |group_id|
+      seconds = $1.to_i
+      $signal_stdin.puts JSON.generate(jsonrpc: '2.0', id: SecureRandom.uuid, method: "updateGroup", params: {groupId: group_id, setPermissionSendMessages: 'only-admins'})
+      sleep seconds
+      $signal_stdin.puts JSON.generate(jsonrpc: '2.0', id: SecureRandom.uuid, method: "updateGroup", params: {groupId: group_id, setPermissionSendMessages: 'every-member'})
+    end
   end
 end
 
