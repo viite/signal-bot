@@ -98,11 +98,19 @@ def process(line)
     group_detect(data) do |group_id|
       write_reply(data, groupId: group_id, message: 'pong')
     end
+  when /^\/ping (\d+)/
+    group_detect(data) do |group_id|
+      seconds = $1.to_i
+      sleep seconds
+      write_reply(data, groupId: group_id, message: "pong after #{seconds} seconds")
+    end
   end
 end
 
-stdout.each_line do |line|
-  Async do
-    process(line)
+Async do
+  stdout.each_line do |line|
+    Async do
+      process(line)
+    end
   end
 end
