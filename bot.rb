@@ -9,6 +9,7 @@ require 'net/http'
 require 'bundler/setup'
 
 require 'json-schema'
+require 'async'
 
 config = JSON.parse(File.read(ARGV.first))
 
@@ -17,7 +18,7 @@ schema_path = File.expand_path("../config_schema.json", __FILE__)
 JSON::Validator.validate!(schema_path, config)
 
 bot_account = config['bot_account']
-group_ids = config['signal_groups']
+GROUP_IDS = config['signal_groups'].freeze
 ENV['GOOGLE_AI_API_KEY'] = config['google_ai_api_key']
 
 puts "Using #{bot_account} as bot account"
@@ -38,11 +39,11 @@ Signal.trap("TERM") {
   $signal_stdin.close
 }
 
-def group_detect(data, group_ids)
+def group_detect(data)
   if group_info = data.dig("params", "envelope", "dataMessage", "groupInfo")
     group_id = group_info['groupId']
 
-    if group_ids.include?(group_id)
+    if GROUP_IDS.include?(group_id)
       yield group_id
     else
       puts "GROUP ID DID NOT MATCH"
@@ -63,7 +64,7 @@ def analyze_message(text)
   json_result.dig('candidates', 0, 'content', 'parts', 0, 'text')
 end
 
-stdout.each_line do |line|
+def process(line)
   puts line
   data = JSON.parse(line)
 
@@ -71,7 +72,7 @@ stdout.each_line do |line|
 
   case message
   when /^\/pic (.*)/
-    group_detect(data, group_ids) do |group_id|
+    group_detect(data) do |group_id|
       $signal_stdin.puts JSON.generate(jsonrpc: '2.0', id: SecureRandom.uuid, method: "sendTyping", params: {groupId: group_id})
 
       pic_stdout, pic_stderr, pic_status = Open3.capture3("python3", "source/generate_pic.py", $1)
@@ -87,11 +88,17 @@ stdout.each_line do |line|
       end
     end
   when "/analyze"
-    group_detect(data, group_ids) do |group_id|
+    group_detect(data) do |group_id|
       quote_text = data.dig("params", "envelope", "dataMessage", "quote", "text")
       if quote_text
         write_reply(data, groupId: group_id, message: analyze_message(quote_text))
       end
     end
+  end
+end
+
+stdout.each_line do |line|
+  Async do
+    process(line)
   end
 end
