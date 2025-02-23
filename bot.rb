@@ -3,8 +3,7 @@ require 'json'
 require 'base64'
 require 'securerandom'
 
-bot_account = ARGV[0]
-group_id = ARGV[1]
+bot_account, *group_ids = ARGV
 
 puts "Using #{bot_account} as bot account"
 
@@ -33,7 +32,9 @@ stdout.each_line do |line|
   case message
   when /^\/pic (.*)/
     if group_info = data.dig("params", "envelope", "dataMessage", "groupInfo")
-      if group_info['groupId'] == group_id
+      group_id = group_info['groupId']
+
+      if group_ids.include?(group_id)
         $signal_stdin.puts JSON.generate(jsonrpc: '2.0', id: SecureRandom.uuid, method: "sendTyping", params: {groupId: group_id})
 
         pic_stdout, pic_stderr, pic_status = Open3.capture3("python3", "source/generate_pic.py", $1)
