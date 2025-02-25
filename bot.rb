@@ -64,12 +64,17 @@ def analyze_message(text)
   json_result.dig('candidates', 0, 'content', 'parts', 0, 'text')
 end
 
-def print_groups(data)
+def print_groups(data, filter: nil)
   groups = data['result']
   reply_to = JSON.parse(data['id'])['replyTo']
 
   listing = groups.select do |group_info|
-    group_info['groupInviteLink']
+    has_link = group_info['groupInviteLink']
+    if filter
+      group_info['name'] =~ /#{filter}/i && has_link
+    else
+      has_link
+    end
   end.map do |group_info|
     "#{group_info['name']}: #{group_info['groupInviteLink']}"
   end.join("\n\n")
@@ -83,6 +88,12 @@ def process(line)
 
   if data['id']&.start_with?('{"replyTo')
     print_groups(data)
+    return
+  end
+
+  if data['id']&.start_with?('{"search')
+    filter = JSON.parse(data['id'])['search']
+    print_groups(data, filter: filter)
     return
   end
 
@@ -138,6 +149,10 @@ def process(line)
   when '/list'
     group_detect(data) do |group_id|
       $signal_stdin.puts JSON.generate(jsonrpc: '2.0', id: {replyTo: group_id, id: SecureRandom.uuid}.to_json, method: "listGroups", params: {})
+    end
+  when /^\/search (.*)/
+    group_detect(data) do |group_id|
+      $signal_stdin.puts JSON.generate(jsonrpc: '2.0', id: {search: $1, replyTo: group_id, id: SecureRandom.uuid}.to_json, method: "listGroups", params: {})
     end
   end
 end
