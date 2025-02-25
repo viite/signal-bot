@@ -64,9 +64,27 @@ def analyze_message(text)
   json_result.dig('candidates', 0, 'content', 'parts', 0, 'text')
 end
 
+def print_groups(data)
+  groups = data['result']
+  reply_to = JSON.parse(data['id'])['replyTo']
+
+  listing = groups.select do |group_info|
+    group_info['groupInviteLink']
+  end.map do |group_info|
+    "#{group_info['name']}: #{group_info['groupInviteLink']}"
+  end.join("\n\n")
+
+  $signal_stdin.puts JSON.generate(jsonrpc: '2.0', id: SecureRandom.uuid, method: "send", params: {groupId: reply_to, message: listing})
+end
+
 def process(line)
   puts line
   data = JSON.parse(line)
+
+  if data['id']&.start_with?('{"replyTo')
+    print_groups(data)
+    return
+  end
 
   message = data.dig("params", "envelope", "dataMessage", "message")
 
@@ -116,6 +134,10 @@ def process(line)
       $signal_stdin.puts JSON.generate(jsonrpc: '2.0', id: SecureRandom.uuid, method: "updateGroup", params: {groupId: group_id, setPermissionSendMessages: 'only-admins'})
       sleep seconds
       $signal_stdin.puts JSON.generate(jsonrpc: '2.0', id: SecureRandom.uuid, method: "updateGroup", params: {groupId: group_id, setPermissionSendMessages: 'every-member'})
+    end
+  when '/list'
+    group_detect(data) do |group_id|
+      $signal_stdin.puts JSON.generate(jsonrpc: '2.0', id: {replyTo: group_id, id: SecureRandom.uuid}.to_json, method: "listGroups", params: {})
     end
   end
 end
