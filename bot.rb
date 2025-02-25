@@ -70,6 +70,12 @@ def process(line)
 
   message = data.dig("params", "envelope", "dataMessage", "message")
 
+  if message
+    timestamp = data.dig("params", "envelope", "timestamp")
+    author = data.dig("params", "envelope", "source")
+    $signal_stdin.puts JSON.generate(jsonrpc: '2.0', id: SecureRandom.uuid, method: "sendReceipt", params: {targetTimestamp: timestamp, recipient: author})
+  end
+
   case message
   when /^\/pic (.*)/
     group_detect(data) do |group_id|
