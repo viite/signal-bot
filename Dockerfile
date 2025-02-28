@@ -35,4 +35,5 @@ COPY generate_pic.py /app
 
 USER signal-cli
 
+ENV LANG=C.utf8
 ENTRYPOINT ["ruby", "source/bot.rb"]
