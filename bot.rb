@@ -64,22 +64,33 @@ def analyze_message(text)
   json_result.dig('candidates', 0, 'content', 'parts', 0, 'text')
 end
 
-def print_groups(data, filter: nil)
+def groups_with_link(data)
   groups = data['result']
+  groups.select do |group_info|
+    group_info['groupInviteLink']
+  end
+end
+
+def print_groups(data, filter: nil)
   reply_to = JSON.parse(data['id'])['replyTo']
 
-  listing = groups.select do |group_info|
-    has_link = group_info['groupInviteLink']
+  listing = groups_with_link(data).select do |group_info|
     if filter
-      group_info['name'] =~ /#{filter}/i && has_link
+      group_info['name'] =~ /#{filter}/i
     else
-      has_link
+      true
     end
   end.map do |group_info|
     "#{group_info['name']}: #{group_info['groupInviteLink']}"
   end.join("\n\n")
 
   $signal_stdin.puts JSON.generate(jsonrpc: '2.0', id: SecureRandom.uuid, method: "send", params: {groupId: reply_to, message: listing})
+end
+
+def add_user_to_all(data, uuid)
+  groups_with_link(data).each do |group_info|
+    $signal_stdin.puts JSON.generate(jsonrpc: '2.0', id: SecureRandom.uuid, method: "updateGroup", params: {groupId: group_info['id'], member: uuid})
+  end
 end
 
 def process(line)
@@ -94,6 +105,12 @@ def process(line)
   if data['id']&.start_with?('{"search')
     filter = JSON.parse(data['id'])['search']
     print_groups(data, filter: filter)
+    return
+  end
+
+  if data['id']&.start_with?('{"addAll')
+    uuid = JSON.parse(data['id'])['addAll']
+    add_user_to_all(data, uuid)
     return
   end
 
@@ -153,6 +170,11 @@ def process(line)
   when /^\/search (.*)/
     group_detect(data) do |group_id|
       $signal_stdin.puts JSON.generate(jsonrpc: '2.0', id: {search: $1, replyTo: group_id, id: SecureRandom.uuid}.to_json, method: "listGroups", params: {})
+    end
+  when '/addmeall'
+    group_detect(data) do |group_id|
+      user_uuid = data.dig('params', 'envelope', 'sourceUuid')
+      $signal_stdin.puts JSON.generate(jsonrpc: '2.0', id: {addAll: user_uuid, id: SecureRandom.uuid}.to_json, method: "listGroups", params: {})
     end
   end
 end
