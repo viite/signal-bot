@@ -1,2 +1,2 @@
 #!/bin/bash
-exec docker run --rm -v signal-cli:/var/lib/signal-cli -v ./:/app -e LANG=C.utf8 registry.gitlab.com/packaging/signal-cli/signal-cli-jre:latest "${@}"
+exec docker run --rm -v signal-cli:/var/lib/signal-cli -v ./:/app/source -e LANG=C.utf8 viite/bot:latest "${@}"

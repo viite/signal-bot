@@ -34,3 +34,5 @@ EOD
 COPY generate_pic.py /app
 
 USER signal-cli
+
+ENTRYPOINT ["ruby", "source/bot.rb"]
