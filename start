@@ -1,0 +1,4 @@
+#!/bin/bash
+set -euxo pipefail
+source venv/bin/activate
+ruby source/bot.rb "${@}"
