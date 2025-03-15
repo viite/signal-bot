@@ -6,7 +6,7 @@ USER root
 
 RUN <<EOD
   apt-get update
-  apt-get install -y --no-install-recommends python3-pip python3-venv ruby bundler
+  apt-get install -y --no-install-recommends python3-pip python3-venv ruby bundler imagemagick
   mkdir /app/
   chown signal-cli /app
 EOD

@@ -10,6 +10,7 @@ require 'bundler/setup'
 
 require 'json-schema'
 require 'async'
+require 'mini_magick'
 
 config = JSON.parse(File.read(ARGV.first))
 
@@ -132,9 +133,15 @@ def process(line)
       $signal_stdin.puts JSON.generate(jsonrpc: '2.0', id: SecureRandom.uuid, method: "sendTyping", params: {groupId: group_id, stop: true})
 
       if pic_status.success?
-        base64 = Base64.strict_encode64 pic_stdout
+        image = MiniMagick::Image.read(pic_stdout)
+        begin
+          image.format('webp')
+          base64 = Base64.strict_encode64 image.to_blob
 
-        write_reply(data, groupId: group_id, attachments: ["data:image/png;base64,#{base64}"])
+          write_reply(data, groupId: group_id, attachments: ["data:image/webp;base64,#{base64}"])
+        ensure
+          image.destroy!
+        end
       else
         write_reply(data, groupId: group_id, message: "Could not generate picture\n#{pic_stderr}")
       end
