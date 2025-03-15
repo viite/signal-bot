@@ -1,2 +1,2 @@
 #!/bin/bash
-exec docker run --rm -v signal-cli:/var/lib/signal-cli -v ./:/app/source -t viite/bot:latest "${@}"
+exec docker run --rm --init -v signal-cli:/var/lib/signal-cli -v ./:/app/source -t viite/bot:latest "${@}"
